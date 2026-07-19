@@ -58,3 +58,15 @@
 2026-07-19 12:19:03,027 INFO 📦 0 fichiers à importer
 2026-07-19 12:19:22,109 INFO ✅ Import terminé. Total: 54,278 records
 2026-07-19 12:22:44,468 INFO 🛑 Arrêt demandé, fermeture propre...
+2026-07-19 12:27:57,610 WARNING ⚠️  CORS ouvert à toutes les origines (*). En production, définissez OSINT_ALLOWED_ORIGINS.
+2026-07-19 12:27:57,611 WARNING ⚠️  OSINT_ALLOWED_ORIGINS='*' : allow_credentials désactivé (incompatible avec un wildcard côté navigateur). Définissez des domaines explicites pour garder les credentials.
+2026-07-19 12:27:57,639 WARNING ⚠️  CORS ouvert à toutes les origines (*). En production, définissez OSINT_ALLOWED_ORIGINS.
+2026-07-19 12:27:57,639 WARNING ⚠️  OSINT_ALLOWED_ORIGINS='*' : allow_credentials désactivé (incompatible avec un wildcard côté navigateur). Définissez des domaines explicites pour garder les credentials.
+2026-07-19 12:27:57,670 INFO 🚀 OSINT HUB v4.1 (corrigé)
+2026-07-19 12:27:57,672 INFO 📦 0 fichiers à importer
+2026-07-19 12:27:57,701 INFO ✅ Import terminé. Total: 54,278 records
+2026-07-19 12:32:57,707 INFO 📦 0 fichiers à importer
+2026-07-19 12:32:57,707 INFO ✅ Import terminé. Total: 54,278 records
+2026-07-19 12:37:57,710 INFO 📦 0 fichiers à importer
+2026-07-19 12:37:57,711 INFO ✅ Import terminé. Total: 54,278 records
+2026-07-19 12:38:41,442 INFO 🛑 Arrêt demandé, fermeture propre...

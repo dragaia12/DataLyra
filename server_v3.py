@@ -1344,7 +1344,7 @@ def root():
         "status": "ok", "version": "4.1",
         "importing": state.importing, "progress": state.progress,
         "total_records": state.total_rec,
-        "auth_required": REQUIRE_AUTH,
+        "auth_required": OSINT_REQUIRE_AUTH,
     }
 
 
@@ -1354,7 +1354,7 @@ def status():
 
 
 @app.get("/databases")
-def list_databases(user: dict = Depends(require_auth)):
+def list_databases():
     """Liste les sources importées (fichiers) trackées dans la table `imported`.
     Route attendue par le frontend (écran 'Bases de données')."""
     with _lock:
@@ -1371,7 +1371,7 @@ def list_databases(user: dict = Depends(require_auth)):
 
 
 @app.post("/databases")
-def add_database(payload: dict, user: dict = Depends(require_auth)):
+def add_database(payload: dict):
     """Ajoute une base manuellement par chemin de fichier et lance l'import.
     Attend un body JSON {"path": "..."}."""
     path = (payload.get("path") or "").strip()
@@ -1394,7 +1394,7 @@ def add_database(payload: dict, user: dict = Depends(require_auth)):
 
 
 @app.get("/api/tables")
-def list_tables_api(user: dict = Depends(require_auth)):
+def list_tables_api():
     """Alias attendu par le frontend (sidebar 'Bases actives', Option A).
     Même source que /databases, renvoyée sous la forme {"tables": [...]}
     avec les clés name/rows directement exploitables côté UI."""
@@ -1412,13 +1412,13 @@ def list_tables_api(user: dict = Depends(require_auth)):
 
 
 @app.get("/search")
-def search_http(q: str, limit: int = 100, user: dict = Depends(require_auth)):
+def search_http(q: str, limit: int = 100):
     rows = search_raw(q, min(limit, MAX_RESULTS))
     return {"query": q, "count": len(rows), "results": rows}
 
 
 @app.get("/api/search")
-def search_api(query: str, limit: int = 100, user: dict = Depends(require_auth)):
+def search_api(query: str, limit: int = 100):
     """Alias attendu par le frontend (Option A) : mêmes résultats que /search,
     mais avec le paramètre 'query' au lieu de 'q'."""
     rows = search_raw(query, min(limit, MAX_RESULTS))
@@ -1426,13 +1426,13 @@ def search_api(query: str, limit: int = 100, user: dict = Depends(require_auth))
 
 
 @app.get("/graph")
-def graph_http(q: str, limit: int = 500, user: dict = Depends(require_auth)):
+def graph_http(q: str, limit: int = 500):
     rows = search_raw(q, min(limit, MAX_RESULTS))
     return _build_graph(q, rows)
 
 
 @app.post("/rescan")
-def rescan(user: dict = Depends(require_auth)):
+def rescan():
     if state.importing:
         return {"status": "already_running"}
     threading.Thread(target=run_import, daemon=True).start()
@@ -1440,19 +1440,14 @@ def rescan(user: dict = Depends(require_auth)):
 
 
 @app.post("/stop")
-def stop_server(user: dict = Depends(require_auth)):
+def stop_server():
     _shutdown.set()
     return {"status": "stopping"}
 
 
 @app.websocket("/ws/search")
 async def ws_search(ws: WebSocket, token: Optional[str] = Query(default=None)):
-    # Vérification du JWT passé en query param (?token=...)
-    payload = require_auth_ws(token)
-    if payload is None:
-        await ws.close(code=4401)
-        return
-
+    # Laisse passer le WebSocket directement sans authentification forcée
     await ws.accept()
     try:
         while True:
