@@ -1344,7 +1344,7 @@ def root():
         "status": "ok", "version": "4.1",
         "importing": state.importing, "progress": state.progress,
         "total_records": state.total_rec,
-        "auth_required": OSINT_REQUIRE_AUTH,
+        "auth_required": REQUIRE_AUTH,
     }
 
 
@@ -1447,7 +1447,7 @@ def stop_server():
 
 @app.websocket("/ws/search")
 async def ws_search(ws: WebSocket, token: Optional[str] = Query(default=None)):
-    # Laisse passer le WebSocket directement sans authentification forcée
+    # Connexion directe sans passer par require_auth
     await ws.accept()
     try:
         while True:
