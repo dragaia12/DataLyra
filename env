@@ -6,11 +6,11 @@
 
 # --- Authentification Supabase ---
 # Dashboard Supabase > Project Settings > API > JWT Secret
-OSINT_SUPABASE_JWT_SECRET=COLLE_TON_VRAI_JWT_SECRET_ICI
+OSINT_SUPABASE_JWT_SECRET=1e2b8026-d007-454f-8493-3ed4a08ea884
 
 # 1 = le backend exige un JWT Supabase valide sur chaque requête
 # 0 = pas d'auth (uniquement pour tester en local)
-OSINT_REQUIRE_AUTH=1
+OSINT_REQUIRE_AUTH=0
 
 # --- CORS ---
 # Domaines autorisés à appeler ce backend, séparés par des virgules.
@@ -29,7 +29,7 @@ OSINT_REQUIRE_AUTH=1
 OSINT_ALLOWED_ORIGINS=https://datalyra.pages.dev
 
 # --- Dossiers / DB / réseau (optionnel, valeurs par défaut déjà correctes) ---
-# OSINT_SCAN_ROOTS=osint_data
+OSINT_SCAN_ROOTS=D:/osint_data
 # OSINT_DB_PATH=osint_master.duckdb
 # PORT=8765
 # OSINT_RESCAN_SECS=300

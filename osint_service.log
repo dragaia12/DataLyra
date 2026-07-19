@@ -1,0 +1,60 @@
+2026-07-19 12:01:01,030 WARNING ⚠️  CORS ouvert à toutes les origines (*). En production, définissez OSINT_ALLOWED_ORIGINS.
+2026-07-19 12:01:01,032 WARNING ⚠️  OSINT_ALLOWED_ORIGINS='*' : allow_credentials désactivé (incompatible avec un wildcard côté navigateur). Définissez des domaines explicites pour garder les credentials.
+2026-07-19 12:01:01,087 WARNING ⚠️  CORS ouvert à toutes les origines (*). En production, définissez OSINT_ALLOWED_ORIGINS.
+2026-07-19 12:01:01,088 WARNING ⚠️  OSINT_ALLOWED_ORIGINS='*' : allow_credentials désactivé (incompatible avec un wildcard côté navigateur). Définissez des domaines explicites pour garder les credentials.
+2026-07-19 12:01:01,152 INFO 🚀 OSINT HUB v4.1 (corrigé)
+2026-07-19 12:01:01,153 INFO 📦 0 fichiers à importer
+2026-07-19 12:01:01,203 INFO ✅ Import terminé. Total: 0 records
+2026-07-19 12:02:12,220 INFO 🛑 Arrêt demandé, fermeture propre...
+2026-07-19 12:02:15,732 WARNING ⚠️  CORS ouvert à toutes les origines (*). En production, définissez OSINT_ALLOWED_ORIGINS.
+2026-07-19 12:02:15,733 WARNING ⚠️  OSINT_ALLOWED_ORIGINS='*' : allow_credentials désactivé (incompatible avec un wildcard côté navigateur). Définissez des domaines explicites pour garder les credentials.
+2026-07-19 12:02:15,763 WARNING ⚠️  CORS ouvert à toutes les origines (*). En production, définissez OSINT_ALLOWED_ORIGINS.
+2026-07-19 12:02:15,764 WARNING ⚠️  OSINT_ALLOWED_ORIGINS='*' : allow_credentials désactivé (incompatible avec un wildcard côté navigateur). Définissez des domaines explicites pour garder les credentials.
+2026-07-19 12:02:15,796 INFO 🚀 OSINT HUB v4.1 (corrigé)
+2026-07-19 12:02:15,798 INFO 📦 0 fichiers à importer
+2026-07-19 12:02:15,828 INFO ✅ Import terminé. Total: 0 records
+2026-07-19 12:07:15,830 INFO 📦 0 fichiers à importer
+2026-07-19 12:07:15,831 INFO ✅ Import terminé. Total: 0 records
+2026-07-19 12:10:01,961 INFO 🛑 Arrêt demandé, fermeture propre...
+2026-07-19 12:10:04,268 WARNING ⚠️  CORS ouvert à toutes les origines (*). En production, définissez OSINT_ALLOWED_ORIGINS.
+2026-07-19 12:10:04,269 WARNING ⚠️  OSINT_ALLOWED_ORIGINS='*' : allow_credentials désactivé (incompatible avec un wildcard côté navigateur). Définissez des domaines explicites pour garder les credentials.
+2026-07-19 12:10:04,298 WARNING ⚠️  CORS ouvert à toutes les origines (*). En production, définissez OSINT_ALLOWED_ORIGINS.
+2026-07-19 12:10:04,298 WARNING ⚠️  OSINT_ALLOWED_ORIGINS='*' : allow_credentials désactivé (incompatible avec un wildcard côté navigateur). Définissez des domaines explicites pour garder les credentials.
+2026-07-19 12:10:04,335 INFO 🚀 OSINT HUB v4.1 (corrigé)
+2026-07-19 12:10:04,336 INFO 📦 0 fichiers à importer
+2026-07-19 12:10:04,358 INFO ✅ Import terminé. Total: 0 records
+2026-07-19 12:10:06,829 INFO 🛑 Arrêt demandé, fermeture propre...
+2026-07-19 12:10:16,067 WARNING ⚠️  CORS ouvert à toutes les origines (*). En production, définissez OSINT_ALLOWED_ORIGINS.
+2026-07-19 12:10:16,068 WARNING ⚠️  OSINT_ALLOWED_ORIGINS='*' : allow_credentials désactivé (incompatible avec un wildcard côté navigateur). Définissez des domaines explicites pour garder les credentials.
+2026-07-19 12:10:16,097 WARNING ⚠️  CORS ouvert à toutes les origines (*). En production, définissez OSINT_ALLOWED_ORIGINS.
+2026-07-19 12:10:16,097 WARNING ⚠️  OSINT_ALLOWED_ORIGINS='*' : allow_credentials désactivé (incompatible avec un wildcard côté navigateur). Définissez des domaines explicites pour garder les credentials.
+2026-07-19 12:10:16,129 INFO 🚀 OSINT HUB v4.1 (corrigé)
+2026-07-19 12:10:16,130 INFO 📦 0 fichiers à importer
+2026-07-19 12:10:16,153 INFO ✅ Import terminé. Total: 0 records
+2026-07-19 12:12:40,644 WARNING ⚠️  CORS ouvert à toutes les origines (*). En production, définissez OSINT_ALLOWED_ORIGINS.
+2026-07-19 12:12:40,646 WARNING ⚠️  OSINT_ALLOWED_ORIGINS='*' : allow_credentials désactivé (incompatible avec un wildcard côté navigateur). Définissez des domaines explicites pour garder les credentials.
+2026-07-19 12:12:40,675 WARNING ⚠️  CORS ouvert à toutes les origines (*). En production, définissez OSINT_ALLOWED_ORIGINS.
+2026-07-19 12:12:40,676 WARNING ⚠️  OSINT_ALLOWED_ORIGINS='*' : allow_credentials désactivé (incompatible avec un wildcard côté navigateur). Définissez des domaines explicites pour garder les credentials.
+2026-07-19 12:12:40,707 INFO 🚀 OSINT HUB v4.1 (corrigé)
+2026-07-19 12:12:40,708 INFO 📦 0 fichiers à importer
+2026-07-19 12:12:40,730 INFO ✅ Import terminé. Total: 0 records
+2026-07-19 12:13:13,216 INFO 🛑 Arrêt demandé, fermeture propre...
+2026-07-19 12:13:16,317 WARNING ⚠️  CORS ouvert à toutes les origines (*). En production, définissez OSINT_ALLOWED_ORIGINS.
+2026-07-19 12:13:16,317 WARNING ⚠️  OSINT_ALLOWED_ORIGINS='*' : allow_credentials désactivé (incompatible avec un wildcard côté navigateur). Définissez des domaines explicites pour garder les credentials.
+2026-07-19 12:13:16,346 WARNING ⚠️  CORS ouvert à toutes les origines (*). En production, définissez OSINT_ALLOWED_ORIGINS.
+2026-07-19 12:13:16,346 WARNING ⚠️  OSINT_ALLOWED_ORIGINS='*' : allow_credentials désactivé (incompatible avec un wildcard côté navigateur). Définissez des domaines explicites pour garder les credentials.
+2026-07-19 12:13:16,378 INFO 🚀 OSINT HUB v4.1 (corrigé)
+2026-07-19 12:13:17,099 INFO 📦 6 fichiers à importer
+2026-07-19 12:13:17,100 INFO ⏳ 8M.json (293.2 MB)...
+2026-07-19 12:13:17,100 INFO ⏳ Avast_2014_400k.json (58.9 MB)...
+2026-07-19 12:13:17,101 INFO ⏳ brazzers com April 2013.json (36.3 MB)...
+2026-07-19 12:13:17,101 INFO ⏳ GTA5Base.com .json (1.0 MB)...
+2026-07-19 12:18:06,621 INFO 🛑 Arrêt demandé, fermeture propre...
+2026-07-19 12:19:02,967 WARNING ⚠️  CORS ouvert à toutes les origines (*). En production, définissez OSINT_ALLOWED_ORIGINS.
+2026-07-19 12:19:02,967 WARNING ⚠️  OSINT_ALLOWED_ORIGINS='*' : allow_credentials désactivé (incompatible avec un wildcard côté navigateur). Définissez des domaines explicites pour garder les credentials.
+2026-07-19 12:19:02,996 WARNING ⚠️  CORS ouvert à toutes les origines (*). En production, définissez OSINT_ALLOWED_ORIGINS.
+2026-07-19 12:19:02,996 WARNING ⚠️  OSINT_ALLOWED_ORIGINS='*' : allow_credentials désactivé (incompatible avec un wildcard côté navigateur). Définissez des domaines explicites pour garder les credentials.
+2026-07-19 12:19:03,026 INFO 🚀 OSINT HUB v4.1 (corrigé)
+2026-07-19 12:19:03,027 INFO 📦 0 fichiers à importer
+2026-07-19 12:19:22,109 INFO ✅ Import terminé. Total: 54,278 records
+2026-07-19 12:22:44,468 INFO 🛑 Arrêt demandé, fermeture propre...
