@@ -822,6 +822,15 @@ def _duckdb_native_import(p: Path, src: str, ext: str) -> int:
     safe = str(p).replace("'", "''")
     safe_src = src.replace("'", "''")
 
+    # ── IMPORT PRINCIPAL & OPTIMISATIONS NATIVES ──────────────────
+EXTS = {".csv", ".tsv", ".json", ".jsonl", ".ndjson", ".txt", ".sql"}
+SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build", "target"}
+
+def _duckdb_native_import(p: Path, src: str, ext: str) -> int:
+    """Import ultra-rapide via DuckDB natif (C++) — 10-50x plus vite que Python pur."""
+    safe = str(p).replace("'", "''")
+    safe_src = src.replace("'", "''")
+
     # Colonnes email/user/domain/ip standards
     EMAIL_PATS   = ("email","mail","courriel","e_mail")
     USER_PATS    = ("username","user","login","pseudo","nom","name","handle")
@@ -845,7 +854,6 @@ def _duckdb_native_import(p: Path, src: str, ext: str) -> int:
 
             if ext in (".csv", ".tsv"):
                 sep = "\t" if ext == ".tsv" else ","
-                # Lire les colonnes disponibles
                 try:
                     desc = c.execute(
                         f"SELECT * FROM read_csv_auto('{safe}', ignore_errors=true, "
@@ -886,7 +894,6 @@ def _duckdb_native_import(p: Path, src: str, ext: str) -> int:
                         ON CONFLICT (id) DO NOTHING
                     """)
                 else:
-                    # Pas de header → lignes brutes (email:pass etc.)
                     c.execute(f"""
                         INSERT INTO records
                         SELECT
@@ -918,6 +925,26 @@ def _duckdb_native_import(p: Path, src: str, ext: str) -> int:
                     FROM read_csv('{safe}', columns={{'line':'VARCHAR'}},
                         header=false, ignore_errors=true, parallel=true)
                     WHERE trim(line) != ''
+                    ON CONFLICT (id) DO NOTHING
+                """)
+                c.commit()
+
+            elif ext in (".json", ".jsonl", ".ndjson"):
+                # IMPORT NATIVE DUCKDB POUR LES FICHIERS JSON — VITESSE C++
+                c.execute(f"""
+                    INSERT INTO records
+                    SELECT
+                        abs(hash('{safe_src}' || CAST(row_number() OVER() AS VARCHAR))) % 9223372036854775807,
+                        '{safe_src}',
+                        COALESCE(CAST(json_extract(json, '$.email') AS VARCHAR), CAST(json_extract(json, '$.mail') AS VARCHAR)),
+                        COALESCE(CAST(json_extract(json, '$.username') AS VARCHAR), CAST(json_extract(json, '$.user') AS VARCHAR), CAST(json_extract(json, '$.login') AS VARCHAR)),
+                        json_extract(json, '$.password') IS NOT NULL,
+                        COALESCE(CAST(json_extract(json, '$.hash') AS VARCHAR), CAST(json_extract(json, '$.md5') AS VARCHAR), CAST(json_extract(json, '$.sha256') AS VARCHAR)),
+                        CAST(json_extract(json, '$.domain') AS VARCHAR),
+                        COALESCE(CAST(json_extract(json, '$.ip') AS VARCHAR), CAST(json_extract(json, '$.ip_address') AS VARCHAR)),
+                        COALESCE(CAST(json_extract(json, '$.phone') AS VARCHAR), CAST(json_extract(json, '$.telephone') AS VARCHAR)),
+                        CAST(json AS VARCHAR)
+                    FROM read_json_auto('{safe}', format='auto', ignore_errors=true)
                     ON CONFLICT (id) DO NOTHING
                 """)
                 c.commit()
@@ -980,7 +1007,6 @@ def import_file(p: Path) -> int:
             total = _parse_delimited_stream(p, src)
     except Exception as e:
         log.error(f"❌ Échec critique lors du parsing de {src}: {e}")
-        # Sécurité anti-boucle infinie sur fichier corrompu
         with _lock:
             mark(str(p), mtime, 0)
         return 0
@@ -1000,27 +1026,22 @@ def run_import():
     state.importing = True
     state.progress = {"done": 0, "total": 0, "cur": "", "phase": "scan"}
     try:
-        # collect() optimisé
+        # collect() avec os.scandir()
         files = collect()
         
-        # Calcul des mtimes en lot avec une seule passe pour réduire les appels stat()
-        # On fait to_do en une seule boucle avec cache des mtimes
         to_do: list[Path] = []
         for f in files:
             try:
                 mtime = f.stat().st_mtime
-                # already() utilise maintenant le cache mémoire
                 if not already(str(f), mtime):
                     to_do.append(f)
             except OSError:
-                # Fichier inaccessible → on l'ignore
                 continue
         
         state.progress["total"] = len(to_do)
         state.progress["phase"] = "import"
         log.info(f"📦 {len(to_do)} fichiers à importer")
 
-        # Import parallèle limité à 2 workers pour éviter la congestion du disque
         from concurrent.futures import ThreadPoolExecutor, as_completed
         workers = min(2, max(1, len(to_do)))
         with ThreadPoolExecutor(max_workers=workers) as ex:
@@ -1046,14 +1067,12 @@ def run_import():
     finally:
         state.importing = False
 
-
 def _ensure_scan_dirs():
     for root in SCAN_ROOTS:
         try:
             root.mkdir(parents=True, exist_ok=True)
         except Exception:
             pass
-
 
 def bg_loop():
     _ensure_scan_dirs()
