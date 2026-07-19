@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: osint-hub-backend
+    runtime: python
+    pythonVersion: "3.12"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server_v3.py
+    envVars:
+      - key: PORT
+        value: 8765
+      - key: OSINT_DB_PATH
+        value: /tmp/osint_master.duckdb
+      - key: OSINT_SCAN_ROOTS
+        value: /tmp/osint_data
+      - key: OSINT_TMP_DIR
+        value: /tmp/osint_tmp
+      - key: OSINT_LOG_FILE
+        value: /tmp/osint_service.log
+      - key: OSINT_RESCAN_SECS
+        value: 300
+      - key: OSINT_MAX_RESULTS
+        value: 1000
+      # CORS : domaines explicites autorisés. Les sous-domaines *.pages.dev
+      # (y compris previews Cloudflare) sont déjà couverts automatiquement
+      # par le regex côté serveur, pas besoin de les lister ici.
+      - key: OSINT_ALLOWED_ORIGINS
+        value: "https://datalyra.pages.dev"
+      # Auth JWT Supabase : mets sync: false pour saisir le secret
+      # manuellement dans le dashboard Render (jamais en clair dans ce fichier).
+      - key: OSINT_REQUIRE_AUTH
+        value: "1"
+      - key: OSINT_SUPABASE_JWT_SECRET
+        sync: false

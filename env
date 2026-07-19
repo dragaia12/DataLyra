@@ -1,0 +1,36 @@
+# =========================================================
+# OSINT HUB — fichier de configuration
+# Modifie UNIQUEMENT les valeurs ici. Ne touche pas au .py.
+# Ce fichier est relu automatiquement à CHAQUE lancement du serveur.
+# =========================================================
+
+# --- Authentification Supabase ---
+# Dashboard Supabase > Project Settings > API > JWT Secret
+OSINT_SUPABASE_JWT_SECRET=COLLE_TON_VRAI_JWT_SECRET_ICI
+
+# 1 = le backend exige un JWT Supabase valide sur chaque requête
+# 0 = pas d'auth (uniquement pour tester en local)
+OSINT_REQUIRE_AUTH=1
+
+# --- CORS ---
+# Domaines autorisés à appeler ce backend, séparés par des virgules.
+# IMPORTANT : ne JAMAIS laisser "*" si OSINT_REQUIRE_AUTH=1, car un
+# navigateur refuse 'Access-Control-Allow-Origin: *' avec des credentials
+# (cookies/Authorization) -> le CORS échoue silencieusement (preflight bloqué).
+# Mets ici TOUS tes domaines de frontend (prod + preview Cloudflare Pages) :
+# --- CORS ---
+# Domaines autorisés à appeler ce backend, séparés par des virgules.
+# IMPORTANT : ne JAMAIS laisser "*" si OSINT_REQUIRE_AUTH=1, car un
+# navigateur refuse 'Access-Control-Allow-Origin: *' avec des credentials
+# (cookies/Authorization) -> le CORS échoue silencieusement (preflight bloqué).
+# Tous les sous-domaines *.pages.dev (y compris les previews, ex:
+# 97e5d9be.datalyra.pages.dev) sont déjà autorisés automatiquement via regex.
+# Ajoute ici un domaine custom si tu en as un (ex: ton-domaine.com) :
+OSINT_ALLOWED_ORIGINS=https://datalyra.pages.dev
+
+# --- Dossiers / DB / réseau (optionnel, valeurs par défaut déjà correctes) ---
+# OSINT_SCAN_ROOTS=osint_data
+# OSINT_DB_PATH=osint_master.duckdb
+# PORT=8765
+# OSINT_RESCAN_SECS=300
+# OSINT_MAX_RESULTS=1000
