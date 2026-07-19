@@ -21,6 +21,7 @@ Corrections apportées vs v4.0 :
   - CACHE MTIME : réduction des appels stat() dans run_import().
   - PARALLELISATION : scan des racines en parallèle.
 """
+from concurrent.futures import ThreadPoolExecutor
 import asyncio, json, logging, os, re, threading, time, csv, io, hashlib, warnings
 warnings.filterwarnings('ignore', category=SyntaxWarning)
 from contextlib import asynccontextmanager
