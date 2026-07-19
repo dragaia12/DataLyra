@@ -842,7 +842,6 @@ def _duckdb_native_import(p: Path, src: str, ext: str) -> int:
         log.debug(f"DuckDB natif {src}: {e} — fallback Python")
         return -1  # signal fallback
 
-
 def import_file(p: Path) -> int:
     try:
         mtime = p.stat().st_mtime
@@ -856,21 +855,28 @@ def import_file(p: Path) -> int:
     ext = p.suffix.lower()
     size_mb = file_size / 1024 / 1024
     log.info(f"⏳ {src} ({size_mb:.1f} MB)...")
-
-    # Tenter DuckDB natif d'abord (ultra rapide) pour CSV/TXT
-    if ext in (".csv", ".tsv", ".txt"):
-        total = _duckdb_native_import(p, src, ext)
-        if total >= 0:
-            mark(str(p), mtime, total)
-            if total > 0:
-                log.info(f"✓ {src}: {total:,} records [natif DuckDB]")
-            else:
-                log.info(f"✓ {src}: 0 records (fichier vide ou déjà importé)")
-            return total
-        # Si natif échoue → fallback Python ci-dessous
-
-    # Fallback Python avec progress
     t0 = time.time()
+
+    # 1. Tenter DuckDB natif d'abord (ultra rapide) pour CSV/TXT ET JSON/JSONL
+    if ext in (".csv", ".tsv", ".txt", ".json", ".jsonl", ".ndjson"):
+        try:
+            with _lock:
+                total = _duckdb_native_import(p, src, ext)
+            
+            if total >= 0:
+                with _lock:
+                    mark(str(p), mtime, total)
+                elapsed = time.time() - t0
+                if total > 0:
+                    rate = total / elapsed if elapsed > 0 else 0
+                    log.info(f"✓ {src}: {total:,} records [natif DuckDB] en {elapsed:.1f}s ({rate:,.0f} rec/s)")
+                else:
+                    log.info(f"✓ {src}: 0 records (fichier vide ou structure invalide)")
+                return total
+        except Exception as native_err:
+            log.warning(f"⚠️ Échec de l'import natif pour {src} ({native_err}). Passage au fallback Python...")
+
+    # 2. Fallback Python avec progress (si le mode natif a échoué ou n'est pas supporté)
     try:
         if ext in (".csv", ".tsv"):
             total = _parse_csv_file(p, src)
@@ -883,14 +889,19 @@ def import_file(p: Path) -> int:
         else:
             total = _parse_delimited_stream(p, src)
     except Exception as e:
-        log.warning(f"Parse {src}: {e}")
+        log.error(f"❌ Échec critique lors du parsing de {src}: {e}")
+        # Sécurité anti-boucle infinie sur fichier corrompu
+        with _lock:
+            mark(str(p), mtime, 0)
         return 0
 
     elapsed = time.time() - t0
-    mark(str(p), mtime, total)
+    with _lock:
+        mark(str(p), mtime, total)
+        
     if total > 0:
         rate = total / elapsed if elapsed > 0 else 0
-        log.info(f"✓ {src}: {total:,} records en {elapsed:.1f}s ({rate:,.0f} rec/s)")
+        log.info(f"✓ {src}: {total:,} records en {elapsed:.1f}s ({rate:,.0f} rec/s) [Fallback Python]")
     return total
 
 
@@ -922,11 +933,9 @@ def run_import():
         state.progress["phase"] = "import"
         log.info(f"📦 {len(to_do)} fichiers à importer")
 
-        # Parse les fichiers en parallèle (I/O + CPU bound) puis insert dans DuckDB.
-        # DuckDB est protégé par _lock → les inserts se sérialisent automatiquement.
-        # On utilise 4 workers pour le parse simultané des fichiers.
         from concurrent.futures import ThreadPoolExecutor, as_completed
-        workers = min(4, max(1, len(to_do)))
+        # Limité à 2 workers pour réduire la congestion sur le disque dur
+        workers = min(2, max(1, len(to_do)))
         with ThreadPoolExecutor(max_workers=workers) as ex:
             futures = {ex.submit(import_file, f): f for f in to_do}
             for fut in as_completed(futures):
@@ -936,16 +945,12 @@ def run_import():
                 f_name = futures[fut].name
                 try:
                     fut.result()
-                    # Log immédiat quand un thread a terminé l'import d'un fichier
                     log.info(f"  ✨ Fichier traité avec succès : {f_name}")
                 except Exception as e:
-                    log.error(f"  ❌ Erreur sur le fichier {f_name} : {e}")
-                    pass
+                    log.error(f"  ❌ Erreur critique sur le thread de {f_name} : {e}")
                 
                 state.progress["done"] += 1
                 state.progress["cur"] = f_name
-                
-                # Affiche l'état d'avancement global de la file d'attente
                 log.info(f"  📊 Avancement global : {state.progress['done']}/{state.progress['total']} fichiers")
 
         with _lock:
@@ -972,7 +977,7 @@ def bg_loop():
         if _shutdown.wait(RESCAN_SECS):
             break
         run_import()
-
+        
 # ═══════════════════════════════════════════════════════════════
 # AUTHENTIFICATION JWT SUPABASE
 # ═══════════════════════════════════════════════════════════════
