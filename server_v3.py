@@ -932,12 +932,21 @@ def run_import():
             for fut in as_completed(futures):
                 if _shutdown.is_set():
                     break
+                
+                f_name = futures[fut].name
                 try:
                     fut.result()
-                except Exception:
+                    # Log immédiat quand un thread a terminé l'import d'un fichier
+                    log.info(f"  ✨ Fichier traité avec succès : {f_name}")
+                except Exception as e:
+                    log.error(f"  ❌ Erreur sur le fichier {f_name} : {e}")
                     pass
+                
                 state.progress["done"] += 1
-                state.progress["cur"] = futures[fut].name
+                state.progress["cur"] = f_name
+                
+                # Affiche l'état d'avancement global de la file d'attente
+                log.info(f"  📊 Avancement global : {state.progress['done']}/{state.progress['total']} fichiers")
 
         with _lock:
             r = db().execute("SELECT COUNT(*) FROM records").fetchone()
