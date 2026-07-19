@@ -1371,6 +1371,7 @@ def list_databases():
     }
 
 
+@app.post("/api/databases")
 @app.post("/databases")
 def add_database(payload: dict):
     """Ajoute une base manuellement par chemin de fichier et lance l'import.
@@ -1415,7 +1416,13 @@ def list_tables_api():
 @app.get("/search")
 def search_http(q: str, limit: int = 100):
     rows = search_raw(q, min(limit, MAX_RESULTS))
-    return {"query": q, "count": len(rows), "results": rows}
+    return {
+        "query": q, 
+        "count": len(rows), 
+        "results": rows,
+        "data": rows,       # Assure la compatibilité avec le composant UI
+        "matches": rows     # Sécurité alternative
+    }
 
 
 @app.get("/api/search")
@@ -1423,7 +1430,13 @@ def search_api(query: str, limit: int = 100):
     """Alias attendu par le frontend (Option A) : mêmes résultats que /search,
     mais avec le paramètre 'query' au lieu de 'q'."""
     rows = search_raw(query, min(limit, MAX_RESULTS))
-    return {"query": query, "count": len(rows), "results": rows}
+    return {
+        "query": query, 
+        "count": len(rows), 
+        "results": rows,
+        "data": rows,       # Assure la compatibilité avec le composant UI
+        "matches": rows     # Sécurité alternative
+    }
 
 
 @app.get("/graph")
