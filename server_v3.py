@@ -1353,6 +1353,7 @@ def status():
     return {"importing": state.importing, "progress": state.progress, "total_records": state.total_rec}
 
 
+@app.get("/api/databases")
 @app.get("/databases")
 def list_databases():
     """Liste les sources importées (fichiers) trackées dans la table `imported`.
