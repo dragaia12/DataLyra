@@ -1133,7 +1133,9 @@ def _detect_type(q: str) -> str:
 
 
 def search_raw(query: str, limit: int = MAX_RESULTS) -> list[dict]:
-    """Recherche multi-champs dans DuckDB."""
+    """Recherche multi-champs évolutive dans DuckDB (v4.2 avec JSON dynamique)."""
+    import json
+
     terms = [t.strip() for t in query.split() if len(t.strip()) >= 2]
     if not terms:
         return []
@@ -1141,19 +1143,28 @@ def search_raw(query: str, limit: int = MAX_RESULTS) -> list[dict]:
     conditions, params = [], []
     for t in terms:
         like = f"%{t.lower()}%"
+        # On ajoute la recherche sur les nouveaux champs standardisés (nom, prenom, siret, adresse)
         conditions.append("""(
-            LOWER(COALESCE(email,''))    LIKE ? OR
-            LOWER(COALESCE(username,'')) LIKE ? OR
-            LOWER(COALESCE(domain,''))   LIKE ? OR
-            LOWER(COALESCE(ip,''))       LIKE ? OR
-            LOWER(COALESCE(phone,''))    LIKE ? OR
-            LOWER(COALESCE(hash_val,'')) LIKE ? OR
-            LOWER(COALESCE(raw,''))      LIKE ?
+            LOWER(COALESCE(email,''))       LIKE ? OR
+            LOWER(COALESCE(username,''))    LIKE ? OR
+            LOWER(COALESCE(domain,''))      LIKE ? OR
+            LOWER(COALESCE(ip,''))          LIKE ? OR
+            LOWER(COALESCE(phone,''))       LIKE ? OR
+            LOWER(COALESCE(hash_val,''))    LIKE ? OR
+            LOWER(COALESCE(firstname,''))   LIKE ? OR
+            LOWER(COALESCE(lastname,''))    LIKE ? OR
+            LOWER(COALESCE(siret,''))       LIKE ? OR
+            LOWER(COALESCE(address,''))     LIKE ? OR
+            LOWER(COALESCE(raw,''))         LIKE ?
         )""")
-        params.extend([like] * 7)
+        params.extend([like] * 11)
 
+    # Récupération de toutes les colonnes stables + extraction textuelle du JSON extra_attributes
     sql = f"""
-        SELECT src, email, username, password_set, hash_val, domain, ip, phone, raw
+        SELECT 
+            src, email, username, password_set, hash_val, domain, ip, phone, 
+            firstname, lastname, siret, address, password,
+            CAST(extra_attributes AS VARCHAR) as extra, raw
         FROM records
         WHERE {" AND ".join(conditions)}
         LIMIT {limit}
@@ -1161,9 +1172,11 @@ def search_raw(query: str, limit: int = MAX_RESULTS) -> list[dict]:
     try:
         with _lock:
             rows = db().execute(sql, params).fetchall()
-        # NB: on ne renvoie plus la colonne 'password' claire (elle n'existe plus en v4.1)
-        return [
-            {
+            
+        results = []
+        for r in rows:
+            # 1. Structure de base unifiée attendue par ton UI
+            record = {
                 "source":       r[0] or "",
                 "email":        r[1] or "",
                 "username":     r[2] or "",
@@ -1172,17 +1185,38 @@ def search_raw(query: str, limit: int = MAX_RESULTS) -> list[dict]:
                 "domain":       r[5] or "",
                 "ip":           r[6] or "",
                 "phone":        r[7] or "",
-                "raw":          r[8] or "",
+                "firstname":    r[8] or "",
+                "lastname":     r[9] or "",
+                "siret":        r[10] or "",
+                "address":      r[11] or "",
+                "password":     r[12] or "", # Le mot de passe en clair réapparaît
             }
-            for r in rows
-        ]
+            
+            # 2. Extraction et aplatissement dynamique du JSON (ex: token)
+            extra_str = r[13]
+            if extra_str:
+                try:
+                    extra_data = json.loads(extra_str)
+                    if isinstance(extra_data, dict):
+                        for k, v in extra_data.items():
+                            if v: # On ne l'ajoute que si la valeur n'est pas vide
+                                record[k] = v
+                except Exception:
+                    pass
+            
+            # 3. Ajout de la ligne brute pour la sécurité
+            record["raw"] = r[14] or ""
+            results.append(record)
+            
+        return results
+
     except Exception as e:
         log.error(f"search_raw: {e}")
         return []
 
 
 def _build_graph(query: str, rows: list[dict]) -> dict:
-    """Construit un graphe de connexions complet."""
+    """Construit un graphe de connexions complet (v4.2 avec nouveaux modules OSINT)."""
     nodes: list[dict] = []
     edges: list[dict] = []
     node_map: dict[str, str] = {}
@@ -1209,17 +1243,23 @@ def _build_graph(query: str, rows: list[dict]) -> dict:
     root = add_node(query, q_type, {"root": True})
 
     for row in rows:
-        src      = row["source"]
-        email    = row["email"].strip()
-        username = row["username"].strip()
-        has_pwd  = row.get("password_set")
-        domain   = row["domain"].strip()
-        ip       = row["ip"].strip()
-        phone    = row["phone"].strip()
-        hash_v   = row.get("hash_val", "").strip()
+        src       = row["source"]
+        email     = row["email"].strip()
+        username  = row["username"].strip()
+        has_pwd   = row.get("password_set")
+        pwd_plain = row.get("password", "").strip()
+        domain    = row["domain"].strip()
+        ip        = row["ip"].strip()
+        phone     = row["phone"].strip()
+        hash_v    = row.get("hash_val", "").strip()
+        firstname = row.get("firstname", "").strip()
+        lastname  = row.get("lastname", "").strip()
+        siret     = row.get("siret", "").strip()
+        address   = row.get("address", "").strip()
 
         entities: dict[str, str] = {}
 
+        # --- Entités Standards ---
         if email:
             nid = add_node(email, "email", {"source": src})
             add_edge(root, nid, "email trouvé", 3)
@@ -1255,15 +1295,34 @@ def _build_graph(query: str, rows: list[dict]) -> dict:
             add_edge(root, nid, "hash", 1)
             entities["hash"] = nid
 
-        if has_pwd:
-            nid = add_node(f"[mot de passe exposé @ {src}]", "alert", {"source": src})
-            if "email" in entities:
-                add_edge(entities["email"], nid, "mot de passe trouvé", 3)
-            elif "username" in entities:
-                add_edge(entities["username"], nid, "mot de passe trouvé", 3)
-            else:
-                add_edge(root, nid, "alerte", 2)
+        # --- Nouveaux Modules d'Entités ---
+        if firstname or lastname:
+            full_name = f"{firstname} {lastname}".strip()
+            nid = add_node(full_name, "identity", {"source": src})
+            add_edge(root, nid, "identité civile", 3)
+            entities["identity"] = nid
 
+        if siret:
+            nid = add_node(f"SIRET: {siret}", "company", {"source": src})
+            add_edge(root, nid, "entreprise / siret", 2)
+            entities["siret"] = nid
+
+        if address:
+            short_addr = address[:30] + "…" if len(address) > 30 else address
+            nid = add_node(short_addr, "address", {"full": address, "source": src})
+            add_edge(root, nid, "adresse physique", 2)
+            entities["address"] = nid
+
+        # --- Gestion des Alertes Mots de passe (Clair ou Set) ---
+        if has_pwd or pwd_plain:
+            label_pwd = f"MDP: {pwd_plain}" if pwd_plain else f"[mot de passe exposé @ {src}]"
+            nid = add_node(label_pwd, "alert", {"source": src})
+            
+            # Pivotement intelligent de l'arête du graphe
+            pivot = entities.get("email") or entities.get("username") or entities.get("identity") or root
+            add_edge(pivot, nid, "compromission", 3)
+
+        # Liaison transverse de corrélation
         ent_list = list(entities.values())
         for i in range(len(ent_list)):
             for j in range(i + 1, len(ent_list)):
@@ -1273,22 +1332,32 @@ def _build_graph(query: str, rows: list[dict]) -> dict:
 
 
 def _build_payload(query: str, rows: list[dict]) -> dict:
-    """Construit le payload complet pour le frontend."""
+    """Construit le payload complet avec les nouvelles sections dynamiques pour l'UI."""
     emails, usernames, ips, domains, phones, alerts = [], [], [], [], [], []
-    seen: dict[str, set] = {k: set() for k in ["email", "username", "ip", "domain", "phone"]}
+    identities, companies, addresses = [], [], [] # Nouvelles listes
+    
+    seen: dict[str, set] = {
+        k: set() for k in ["email", "username", "ip", "domain", "phone", "identity", "siret", "address"]
+    }
 
     for row in rows:
-        src      = row["source"]
-        email    = row["email"].strip()
-        username = row["username"].strip()
-        has_pwd  = row.get("password_set")
-        domain   = row["domain"].strip()
-        ip       = row["ip"].strip()
-        phone    = row["phone"].strip()
+        src       = row["source"]
+        email     = row["email"].strip()
+        username  = row["username"].strip()
+        has_pwd   = row.get("password_set")
+        pwd_plain = row.get("password", "").strip()
+        domain    = row["domain"].strip()
+        ip        = row["ip"].strip()
+        phone     = row["phone"].strip()
+        firstname = row.get("firstname", "").strip()
+        lastname  = row.get("lastname", "").strip()
+        siret     = row.get("siret", "").strip()
+        address   = row.get("address", "").strip()
 
         if not domain and email and "@" in email:
             domain = email.split("@", 1)[1]
 
+        # --- Traitement des données standards ---
         if email and email not in seen["email"]:
             seen["email"].add(email)
             emails.append({"email": email, "platform": src, "trust_level": "VERIFIED", "sources": [src]})
@@ -1309,29 +1378,52 @@ def _build_payload(query: str, rows: list[dict]) -> dict:
             seen["phone"].add(phone)
             phones.append({"note": phone, "platform": src, "trust_level": "PROBABLE", "sources": [src]})
 
-        if email and has_pwd:
+        # --- Traitement des nouveaux modules de données ---
+        if (firstname or lastname) and f"{firstname} {lastname}".lower() not in seen["identity"]:
+            full_name = f"{firstname} {lastname}".strip()
+            seen["identity"].add(full_name.lower())
+            identities.append({"nom_complet": full_name, "platform": src, "trust_level": "VERIFIED", "sources": [src]})
+
+        if siret and siret not in seen["siret"]:
+            seen["siret"].add(siret)
+            companies.append({"siret": siret, "platform": src, "trust_level": "VERIFIED", "sources": [src]})
+
+        if address and address.lower() not in seen["address"]:
+            seen["address"].add(address.lower())
+            addresses.append({"adresse": address, "platform": src, "trust_level": "PROBABLE", "sources": [src]})
+
+        # --- Traitement étendu des alertes de sécurité ---
+        if (has_pwd or pwd_plain) and email:
+            note_pwd = f"Mot de passe en clair: {pwd_plain}" if pwd_plain else "Mot de passe exposé (non affiché)"
             alerts.append({
                 "email":       email,
                 "username":    username or None,
-                "note":        "Mot de passe exposé (non affiché)",
+                "note":        note_pwd,
                 "platform":    src,
                 "trust_level": "VERIFIED",
                 "sources":     [src],
             })
 
+    # --- Structuration des blocs pour le Frontend ---
     sections = []
     if alerts:
         sections.append({"label": "Données sensibles détectées", "icon": "🚨", "items": alerts[:500]})
+    if identities:
+        sections.append({"label": "Identités civiles",          "icon": "👤", "items": identities[:300]})
+    if companies:
+        sections.append({"label": "Entreprises (SIRET)",        "icon": "🏢", "items": companies[:200]})
+    if addresses:
+        sections.append({"label": "Adresses postales",          "icon": "📍", "items": addresses[:200]})
     if emails:
-        sections.append({"label": "Adresses email",      "icon": "📧", "items": emails[:500]})
+        sections.append({"label": "Adresses email",             "icon": "📧", "items": emails[:500]})
     if usernames:
-        sections.append({"label": "Identifiants",        "icon": "🏷️", "items": usernames[:300]})
+        sections.append({"label": "Identifiants",               "icon": "🏷️", "items": usernames[:300]})
     if ips:
-        sections.append({"label": "Adresses IP",         "icon": "🌍", "items": ips[:200]})
+        sections.append({"label": "Adresses IP",                "icon": "🌍", "items": ips[:200]})
     if domains:
-        sections.append({"label": "Domaines associés",   "icon": "🌐", "items": domains[:200]})
+        sections.append({"label": "Domaines associés",          "icon": "🌐", "items": domains[:200]})
     if phones:
-        sections.append({"label": "Numéros de téléphone","icon": "📞", "items": phones[:100]})
+        sections.append({"label": "Numéros de téléphone",       "icon": "📞", "items": phones[:100]})
 
     v = sum(1 for s in sections for i in s["items"] if i.get("trust_level") == "VERIFIED")
     p = sum(1 for s in sections for i in s["items"] if i.get("trust_level") == "PROBABLE")
@@ -1347,6 +1439,9 @@ def _build_payload(query: str, rows: list[dict]) -> dict:
             "ips":        len(ips),
             "domains":    len(domains),
             "phones":     len(phones),
+            "identities": len(identities),
+            "companies":  len(companies),
+            "addresses":  len(addresses),
         },
     }
 
@@ -1365,8 +1460,12 @@ def _build_payload(query: str, rows: list[dict]) -> dict:
 # La recherche DuckDB est présentée sous forme de modules pour l'UI.
 # Chaque module filtre/fait ressortir un type de signal dans les résultats.
 
+# Ajout des nouveaux modules civils et d'entreprise
 MODULES = [
     ("duckdb_local",     "Base de données locale"),
+    ("identity_parser",  "Identité civile"),       # Nouveau module
+    ("company_intel",    "Registre d'entreprise"), # Nouveau module
+    ("address_geo",      "Localisation postale"),  # Nouveau module
     ("email_reputation", "Réputation email"),
     ("domain_lookup",    "Domaines associés"),
     ("ip_intel",         "Renseignement IP"),
@@ -1374,9 +1473,8 @@ MODULES = [
     ("hash_check",       "Empreintes / hashs"),
 ]
 
-
 async def _emit_modules(ws: WebSocket, q: str, rows: list[dict]):
-    """Émet les messages de progression par module (pour garder l'effet multi-tool)."""
+    """Émet les messages de progression par module avec support des nouveaux champs."""
     loop = asyncio.get_event_loop()
     q_type = _detect_type(q)
 
@@ -1389,14 +1487,28 @@ async def _emit_modules(ws: WebSocket, q: str, rows: list[dict]):
         "strategy": "balanced",
     })
 
+    # Calcul des compteurs par catégorie pour un retour dynamique
+    counts = {
+        "identity_parser":  sum(1 for r in rows if r.get("firstname") or r.get("lastname")),
+        "company_intel":    sum(1 for r in rows if r.get("siret")),
+        "address_geo":      sum(1 for r in rows if r.get("address")),
+        "email_reputation": sum(1 for r in rows if r.get("email")),
+        "domain_lookup":    sum(1 for r in rows if r.get("domain")),
+        "ip_intel":         sum(1 for r in rows if r.get("ip")),
+        "phone_lookup":     sum(1 for r in rows if r.get("phone")),
+        "hash_check":       sum(1 for r in rows if r.get("hash_val")),
+        "duckdb_local":     len(rows)
+    }
+
     for tool, _label in MODULES:
         if _shutdown.is_set():
             break
         await ws.send_json({"type": "progress", "tool": tool, "status": "running", "count": 0})
-        await asyncio.sleep(0.05)  # effet visuel sans ralentir vraiment
-        count = len(rows)
+        await asyncio.sleep(0.04)  # Fluidité visuelle
+        
+        # Récupération du count spécifique au module
+        count = counts.get(tool, len(rows))
         await ws.send_json({"type": "progress", "tool": tool, "status": "done", "count": count})
-
 # ═══════════════════════════════════════════════════════════════
 # FASTAPI + WEBSOCKET
 # ═══════════════════════════════════════════════════════════════
